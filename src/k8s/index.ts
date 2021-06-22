@@ -26,13 +26,13 @@ export interface Handlers {
 }
 
 export interface Interface {
-  getLabels(): Promise<{ [key: string]: string }>;
+  getNodeLabels(): Promise<{ [key: string]: string }>;
 }
 
 export class Client implements Interface {
   constructor(protected handlers: Handlers) {}
 
-  async getLabels(): Promise<{ [key: string]: string }> {
+  async getNodeLabels(): Promise<{ [key: string]: string }> {
     const { config, driver, logger } = this.handlers;
     logger.debug(`getting node labels from "${config.node_name}"`);
     try {

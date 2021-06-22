@@ -41,20 +41,20 @@ describe("k8s", () => {
           },
         };
       };
-      await client.getLabels();
+      await client.getNodeLabels();
       expect(actualNodeName).toBe(testNodeName);
     });
 
     it("should throw error on node not found", async () => {
       const name = "non-existing-node-123";
       handlers.config.node_name = name;
-      await expect(client.getLabels()).rejects.toThrowError(
+      await expect(client.getNodeLabels()).rejects.toThrowError(
         `node "${name}" not found`
       );
     });
 
     it("should return labels on node found", async () => {
-      await expect(client.getLabels()).resolves.toBe(testLabels);
+      await expect(client.getNodeLabels()).resolves.toBe(testLabels);
     });
   });
 

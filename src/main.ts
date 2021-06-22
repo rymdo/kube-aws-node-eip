@@ -33,7 +33,7 @@ async function run() {
   logger.info(`config: ${JSON.stringify(config)}`);
   const k8s = createK8SClient(logger);
   const aws = createAWSClient(logger);
-  console.log(await k8s.getLabels());
+  console.log(await k8s.getNodeLabels());
   console.log(await aws.getInstanceId());
 }
 
