@@ -1,0 +1,25 @@
+{
+  "name": "kube-aws-node-eip",
+  "version": "0.0.1",
+  "repository": "https://github.com/rymdo/kube-aws-node-eip.git",
+  "author": "Niklas Wigertz <niklas.wigertz.danielsson@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "test": "jest",
+    "build": "tsc",
+    "start": "node -r ts-node/register ./src/main.ts"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.9.6",
+    "@babel/preset-env": "^7.9.6",
+    "@babel/preset-typescript": "^7.9.0",
+    "@types/jest": "^25.2.3",
+    "@types/node": "14.0.5",
+    "babel-jest": "^26.0.1",
+    "jest": "^26.0.1",
+    "ts-node": "^10.0.0"
+  },
+  "dependencies": {
+    "typescript": "3.9.3"
+  }
+}
