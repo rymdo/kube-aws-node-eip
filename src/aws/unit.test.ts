@@ -53,18 +53,18 @@ describe("aws", () => {
       drivers: {
         aws: {},
         http: {
-          get: async () => testInstanceId,
+          get: async () => {
+            return {
+              data: testInstanceId,
+            };
+          },
         },
       },
     };
   }
 
   function createMockConfig(): Config {
-    return {
-      development: false,
-      log_level: "info",
-      node_name: "node-123",
-    };
+    return {} as Config;
   }
 
   function createMockLogger() {

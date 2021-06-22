@@ -12,7 +12,9 @@ export interface Handlers {
   };
 }
 
-export interface Interface {}
+export interface Interface {
+  getInstanceId(): Promise<string>;
+}
 
 export class Client implements Interface {
   constructor(protected handlers: Handlers) {}
@@ -26,7 +28,8 @@ export class Client implements Interface {
     const url = "http://169.254.169.254/latest/meta-data/instance-id";
     logger.debug(`getting instance id from url "${url}"`);
     try {
-      const id = await drivers.http.get(url);
+      const result = await drivers.http.get(url);
+      const id = result.data;
       logger.debug(`instance id: "${id}"`);
       return id;
     } catch (e) {

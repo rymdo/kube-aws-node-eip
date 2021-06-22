@@ -89,10 +89,8 @@ describe("k8s", () => {
 
   function createMockConfig(): Config {
     return {
-      development: false,
-      log_level: "info",
       node_name: testNodeName,
-    };
+    } as Config;
   }
 
   function createMockLogger() {

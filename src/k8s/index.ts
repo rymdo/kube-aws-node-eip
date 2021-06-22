@@ -1,26 +1,28 @@
 import { Config } from "../config";
 import { LoggerInterface } from "../logger";
 
-export interface Handlers {
-  config: Config;
-  logger: LoggerInterface;
-  driver: {
-    api: {
-      v1: {
-        node(name: string): {
-          get(): Promise<{
-            body: {
-              metadata: {
-                labels: {
-                  [key: string]: string;
-                };
+export interface DriverK8S {
+  api: {
+    v1: {
+      node(name: string): {
+        get(): Promise<{
+          body: {
+            metadata: {
+              labels: {
+                [key: string]: string;
               };
             };
-          }>;
-        };
+          };
+        }>;
       };
     };
   };
+}
+
+export interface Handlers {
+  config: Config;
+  logger: LoggerInterface;
+  driver: DriverK8S;
 }
 
 export interface Interface {
