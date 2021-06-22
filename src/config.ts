@@ -20,11 +20,13 @@ function isDevelopment(): boolean {
   return false;
 }
 
-export const config: {
+export interface Config {
   development: boolean;
   log_level: string;
   node_name: string;
-} = {
+}
+
+export const config: Config = {
   development: isDevelopment(),
   log_level: getEnvOrDefault("LOG_LEVEL", "info"),
   node_name: !isDevelopment() ? getEnvOrFail("NODE_NAME") : developmentNodeName,
