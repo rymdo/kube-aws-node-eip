@@ -1,4 +1,3 @@
-import { loggers } from "winston";
 import { Config } from "../config";
 import { LoggerInterface } from "../logger";
 
