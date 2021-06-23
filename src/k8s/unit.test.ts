@@ -1,5 +1,6 @@
 import { Handlers, Client } from ".";
 import { Config } from "../config";
+import { createMockLogger } from "../mocks/logger";
 
 describe("k8s", () => {
   const testNodeName = "node-1234";
@@ -91,14 +92,5 @@ describe("k8s", () => {
     return {
       node_name: testNodeName,
     } as Config;
-  }
-
-  function createMockLogger() {
-    return {
-      info: (message: string, ...meta: any[]) => {},
-      warn: (message: string, ...meta: any[]) => {},
-      error: (message: string, ...meta: any[]) => {},
-      debug: (message: string, ...meta: any[]) => {},
-    };
   }
 });

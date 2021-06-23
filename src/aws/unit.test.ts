@@ -1,5 +1,6 @@
 import { Handlers, Client } from ".";
 import { Config } from "../config";
+import { createMockLogger } from "../mocks/logger";
 
 describe("aws", () => {
   const testInstanceId = "i-123456789";
@@ -65,14 +66,5 @@ describe("aws", () => {
 
   function createMockConfig(): Config {
     return {} as Config;
-  }
-
-  function createMockLogger() {
-    return {
-      info: (message: string, ...meta: any[]) => {},
-      warn: (message: string, ...meta: any[]) => {},
-      error: (message: string, ...meta: any[]) => {},
-      debug: (message: string, ...meta: any[]) => {},
-    };
   }
 });
