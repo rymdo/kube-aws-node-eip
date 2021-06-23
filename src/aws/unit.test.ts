@@ -107,7 +107,7 @@ describe("aws", () => {
     it("should check for eips with correct filters", async () => {
       const expectedFilters = [
         {
-          Name: testAWSTagName,
+          Name: `tag:${testAWSTagName}`,
           Values: [testAWSTagValue],
         },
       ];
@@ -200,7 +200,7 @@ describe("aws", () => {
         {
           Filters: [
             {
-              Name: testAWSTagName,
+              Name: `tag:${testAWSTagName}`,
               Values: [testAWSTagValue],
             },
           ],

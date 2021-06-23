@@ -77,7 +77,7 @@ export class Client implements Interface {
       new DescribeAddressesCommand({
         Filters: [
           {
-            Name: config.aws.tagName,
+            Name: `tag:${config.aws.tagName}`,
             Values: [config.aws.tagValue],
           },
         ],
