@@ -6,6 +6,8 @@ import * as AWS from "./aws";
 
 import * as ApiClient from "kubernetes-client";
 
+import { EC2Client } from "@aws-sdk/client-ec2";
+
 function createK8SClient(logger: LoggerInterface): K8S.Interface {
   const Client = ApiClient.Client1_13;
   return new K8S.Client({
@@ -21,7 +23,9 @@ function createAWSClient(logger: LoggerInterface): AWS.Interface {
     config,
     logger,
     drivers: {
-      aws: {},
+      aws: {
+        ec2: new EC2Client({ region: config.aws.region }),
+      },
       http: axios,
     },
   });
@@ -33,8 +37,10 @@ async function run() {
   logger.info(`config: ${JSON.stringify(config)}`);
   const k8s = createK8SClient(logger);
   const aws = createAWSClient(logger);
-  console.log(await k8s.getNodeLabels());
-  console.log(await aws.getInstanceId());
+
+  logger.info(JSON.stringify(await k8s.getNodeLabels()));
+  logger.info(JSON.stringify(await aws.getInstanceId()));
+  logger.info(JSON.stringify(await aws.getInstanceEip()));
 }
 
 process.on("SIGINT", function () {
