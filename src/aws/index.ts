@@ -24,6 +24,7 @@ export interface Interface {
   getInstanceEip(): Promise<Eip>;
   getInstanceId(): Promise<string>;
   getFreeEips(): Promise<Eip[]>;
+  instanceHasEip(): Promise<boolean>;
 }
 
 export class Client implements Interface {
@@ -73,5 +74,13 @@ export class Client implements Interface {
 
   async getFreeEips(): Promise<Eip[]> {
     return [];
+  }
+
+  async instanceHasEip(): Promise<boolean> {
+    try {
+      await this.getInstanceEip();
+      return true;
+    } catch (e) {}
+    return false;
   }
 }

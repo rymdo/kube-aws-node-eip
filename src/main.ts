@@ -40,7 +40,11 @@ async function run() {
 
   logger.info(JSON.stringify(await k8s.getNodeLabels()));
   logger.info(JSON.stringify(await aws.getInstanceId()));
-  logger.info(JSON.stringify(await aws.getInstanceEip()));
+  if (await aws.instanceHasEip()) {
+    logger.info(JSON.stringify(await aws.getInstanceEip()));
+  } else {
+    logger.info("instance has no eip");
+  }
 }
 
 process.on("SIGINT", function () {

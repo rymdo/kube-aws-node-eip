@@ -59,7 +59,7 @@ describe("aws", () => {
         expectedFilters
       );
     });
-    describe("give instance without eip", () => {
+    describe("given instance without eip", () => {
       beforeEach(() => {
         handlers.drivers.http.get = async () => {
           return {
@@ -74,7 +74,7 @@ describe("aws", () => {
         );
       });
     });
-    describe("give instance with eip", () => {
+    describe("given instance with eip", () => {
       it("should get correct eip id", async () => {
         const eip = await client.getInstanceEip();
         expect(eip.id).toBe(testEipId);
@@ -82,6 +82,26 @@ describe("aws", () => {
       it("should get correct eip", async () => {
         const eip = await client.getInstanceEip();
         expect(eip.ip).toBe(testEip);
+      });
+    });
+  });
+
+  describe("on instanceHasEip", () => {
+    describe("given instance without eip", () => {
+      beforeEach(() => {
+        handlers.drivers.http.get = async () => {
+          return {
+            data: testInstanceIdWithoutEip,
+          };
+        };
+      });
+      it("should return false", async () => {
+        await expect(client.instanceHasEip()).resolves.toBeFalsy();
+      });
+    });
+    describe("given instance with eip", () => {
+      it("should return true", async () => {
+        await expect(client.instanceHasEip()).resolves.toBeTruthy();
       });
     });
   });
