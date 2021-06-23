@@ -22,21 +22,38 @@ export class Service implements Interface {
   constructor(protected handlers: Handlers) {}
 
   async run(): Promise<void> {
-    const { logger, sleep } = this.handlers;
+    const { logger, sleep, aws } = this.handlers;
     logger.info("service/run: starting");
     let run = true;
     do {
       try {
+        logger.debug("service/run: checking if service is enabled for node");
         const enabled = await this.isEnabled();
         if (!enabled) {
           run = false;
           logger.error(
-            "service/run: service is not enabled for this node. Please verify that the correct labels are set."
+            `service/run: service is not enabled for this node. required label: '${this.labelDomain}/enabled'='true'`
           );
-          logger.error(
-            `service/run: required label: "${this.labelDomain}/enabled" = "true"`
-          );
+          break;
         }
+
+        logger.debug("service/run: checking if node has eip assigned");
+        const hasEip = await aws.instanceHasEip();
+        if (hasEip) {
+          logger.debug("service/run: instance already has eip");
+          logger.debug("service/run: removing node taint");
+          // ToDo: Remove Taint
+          continue;
+        }
+
+        logger.debug("service/run: setting node taint");
+        // ToDo: Set Taint
+
+        logger.debug("service/run: assigning eip to node");
+        await this.assignEip();
+
+        logger.debug("service/run: removing node taint");
+        // ToDo: Remove Taint
       } catch (e) {
         logger.error(`service/run: ${e.toString()}`);
       }
@@ -46,10 +63,13 @@ export class Service implements Interface {
 
   async isEnabled(): Promise<boolean> {
     const { logger, k8s } = this.handlers;
+
     logger.debug("service/isEnabled: getting node labels");
     const labels = await k8s.getNodeLabels();
+
     for (const [key, value] of Object.entries(labels)) {
-      if (key !== this.labelDomain) {
+      logger.debug(`service/isEnabled: checking '${key}'='${value}'`);
+      if (key !== `${this.labelDomain}/enabled`) {
         continue;
       }
       if (value !== "true") {
@@ -58,7 +78,40 @@ export class Service implements Interface {
       logger.debug("service/isEnabled: service enabled");
       return true;
     }
+
     logger.debug("service/isEnabled: service disabled");
     return false;
+  }
+
+  async assignEip(): Promise<void> {
+    const { logger, aws, k8s } = this.handlers;
+
+    logger.debug("service/assignEip: getting node labels");
+    const labels = await k8s.getNodeLabels();
+    const tag = {
+      name: "",
+      value: "",
+    };
+    for (const [key, value] of Object.entries(labels)) {
+      logger.debug(`service/assignEip: checking '${key}'='${value}'`);
+      if (key === `${this.labelDomain}/tag-name`) {
+        tag.name = value;
+      }
+      if (key === `${this.labelDomain}/tag-value`) {
+        tag.value = value;
+      }
+    }
+    if (tag.name === "" || tag.value === "") {
+      logger.error(
+        `service/assignEip: tag not valid. tag '${JSON.stringify(tag)}'`
+      );
+      throw new Error("invalid tag");
+    }
+    logger.debug(`service/assignEip: tag '${JSON.stringify(tag)}'`);
+
+    logger.debug("service/assignEip: getting free eips");
+    const eips = await aws.getFreeEips(tag);
+
+    // ToDo: Assign EIP to instance
   }
 }
