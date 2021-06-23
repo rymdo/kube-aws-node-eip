@@ -1,23 +1,23 @@
 import { config } from "./config";
 import { createLogger, LoggerInterface } from "./logger";
 import { sleep } from "./sleep";
-import * as k8s from "./k8s";
-import * as aws from "./aws";
+import * as K8S from "./k8s";
+import * as AWS from "./aws";
 
 import * as ApiClient from "kubernetes-client";
 
-function createK8SClient(logger: LoggerInterface): k8s.Interface {
+function createK8SClient(logger: LoggerInterface): K8S.Interface {
   const Client = ApiClient.Client1_13;
-  return new k8s.Client({
+  return new K8S.Client({
     config,
     logger,
     driver: new Client({ version: "1.13" }),
   });
 }
 
-function createAWSClient(logger: LoggerInterface): aws.Interface {
+function createAWSClient(logger: LoggerInterface): AWS.Interface {
   const axios = require("axios").default;
-  return new aws.Client({
+  return new AWS.Client({
     config,
     logger,
     drivers: {
