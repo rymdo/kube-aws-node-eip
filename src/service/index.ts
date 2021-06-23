@@ -43,17 +43,16 @@ export class Service implements Interface {
           logger.debug("service/run: instance already has eip");
           logger.debug("service/run: removing node taint");
           // ToDo: Remove Taint
-          continue;
+        } else {
+          logger.debug("service/run: setting node taint");
+          // ToDo: Set Taint
+
+          logger.debug("service/run: assigning eip to node");
+          await this.assignEip();
+
+          logger.debug("service/run: removing node taint");
+          // ToDo: Remove Taint
         }
-
-        logger.debug("service/run: setting node taint");
-        // ToDo: Set Taint
-
-        logger.debug("service/run: assigning eip to node");
-        await this.assignEip();
-
-        logger.debug("service/run: removing node taint");
-        // ToDo: Remove Taint
       } catch (e) {
         logger.error(`service/run: ${e.toString()}`);
       }
