@@ -34,15 +34,15 @@ export class Client implements Interface {
 
   async getNodeLabels(): Promise<{ [key: string]: string }> {
     const { config, driver, logger } = this.handlers;
-    logger.debug(`getting node labels from "${config.node_name}"`);
+    logger.debug(`getting node labels from "${config.nodeName}"`);
     try {
-      const result = await driver.api.v1.node(config.node_name).get();
+      const result = await driver.api.v1.node(config.nodeName).get();
       const labels = result.body.metadata.labels;
       logger.debug(`labels: "${JSON.stringify(labels)}"`);
       return labels;
     } catch (e) {
       logger.error(`${e.toString()}`);
-      throw new Error(`node "${config.node_name}" not found`);
+      throw new Error(`node "${config.nodeName}" not found`);
     }
   }
 }

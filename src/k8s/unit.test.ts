@@ -48,7 +48,7 @@ describe("k8s", () => {
 
     it("should throw error on node not found", async () => {
       const name = "non-existing-node-123";
-      handlers.config.node_name = name;
+      handlers.config.nodeName = name;
       await expect(client.getNodeLabels()).rejects.toThrowError(
         `node "${name}" not found`
       );
@@ -90,7 +90,7 @@ describe("k8s", () => {
 
   function createMockConfig(): Config {
     return {
-      node_name: testNodeName,
+      nodeName: testNodeName,
     } as Config;
   }
 });

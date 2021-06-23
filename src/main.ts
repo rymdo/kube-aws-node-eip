@@ -45,6 +45,11 @@ async function run() {
   } else {
     logger.info("instance has no eip");
   }
+  try {
+    logger.info(JSON.stringify(await aws.getFreeEips()));
+  } catch (e) {
+    logger.info(e.toString());
+  }
 }
 
 process.on("SIGINT", function () {

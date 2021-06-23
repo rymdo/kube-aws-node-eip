@@ -10,6 +10,23 @@ describe("aws", () => {
   const testInstanceIdWithoutEip = "i-987654321";
   const testEipId = "eipalloc-12431553";
   const testEip = "1.2.3.4";
+  const testFreeEips = [
+    {
+      PublicIp: "1.1.1.1",
+      AllocationId: "eipalloc-111111111",
+    },
+    {
+      PublicIp: "2.2.2.2",
+      AllocationId: "eipalloc-222222222",
+    },
+    {
+      PublicIp: "3.3.3.3",
+      AllocationId: "eipalloc-333333333",
+      AssociationId: "eipassoc-123",
+    },
+  ];
+  const testAWSTagName = "Name";
+  const testAWSTagValue = "tf-test-service-1";
 
   let ec2Mock: any;
   let handlers: Handlers;
@@ -86,6 +103,45 @@ describe("aws", () => {
     });
   });
 
+  describe("on getFreeEips", () => {
+    it("should check for eips with correct filters", async () => {
+      const expectedFilters = [
+        {
+          Name: testAWSTagName,
+          Values: [testAWSTagValue],
+        },
+      ];
+      try {
+        await client.getFreeEips();
+      } catch (e) {}
+      expect(ec2Mock.calls(0)[0].firstArg.input.Filters).toEqual(
+        expectedFilters
+      );
+    });
+    describe("given no free eips exists", () => {
+      beforeEach(() => {
+        handlers = createHandlers([]);
+        client = new Client(handlers);
+      });
+      it("should throw 'no free eips found'", async () => {
+        await expect(client.getFreeEips()).rejects.toThrowError(
+          "no free eips found"
+        );
+      });
+    });
+    describe("given free eips exists", () => {
+      it("should get all free eips", async () => {
+        const eips = await client.getFreeEips();
+        const expectedEipsCount = testFreeEips.filter(
+          (eip) => !eip.AssociationId
+        );
+        expect(Object.keys(eips).length).toBe(
+          Object.keys(expectedEipsCount).length
+        );
+      });
+    });
+  });
+
   describe("on instanceHasEip", () => {
     describe("given instance without eip", () => {
       beforeEach(() => {
@@ -106,7 +162,7 @@ describe("aws", () => {
     });
   });
 
-  function createHandlers(): Handlers {
+  function createHandlers(eips = testFreeEips): Handlers {
     ec2Mock = mockClient(new EC2Client({}));
     ec2Mock
       .on(
@@ -138,6 +194,21 @@ describe("aws", () => {
       )
       .resolves({
         Addresses: [],
+      })
+      .on(
+        DescribeAddressesCommand,
+        {
+          Filters: [
+            {
+              Name: testAWSTagName,
+              Values: [testAWSTagValue],
+            },
+          ],
+        },
+        true
+      )
+      .resolves({
+        Addresses: eips,
       });
     return {
       config: createMockConfig(),
@@ -158,6 +229,11 @@ describe("aws", () => {
   }
 
   function createMockConfig(): Config {
-    return {} as Config;
+    return {
+      aws: {
+        tagName: testAWSTagName,
+        tagValue: testAWSTagValue,
+      },
+    } as Config;
   }
 });

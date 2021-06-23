@@ -11,17 +11,21 @@ function getEnvOrFail(env: string): string {
 }
 
 export interface Config {
-  log_level: string;
-  node_name: string;
+  logLevel: string;
+  nodeName: string;
   aws: {
     region: string;
+    tagName: string;
+    tagValue: string;
   };
 }
 
 export const config: Config = {
-  log_level: getEnvOrDefault("LOG_LEVEL", "info"),
-  node_name: getEnvOrFail("NODE_NAME"),
+  logLevel: getEnvOrDefault("LOG_LEVEL", "info"),
+  nodeName: getEnvOrFail("NODE_NAME"),
   aws: {
     region: getEnvOrFail("AWS_REGION"),
+    tagName: getEnvOrFail("AWS_TAG_NAME"),
+    tagValue: getEnvOrFail("AWS_TAG_VALUE"),
   },
 };

@@ -10,7 +10,7 @@ export interface LoggerInterface {
 export function createLogger(): LoggerInterface {
   const winston = require("winston");
   return winston.createLogger({
-    level: config.log_level,
+    level: config.logLevel,
     format: winston.format.combine(
       winston.format.timestamp({
         format: "YYYY-MM-DD HH:mm:ss",

@@ -32,7 +32,6 @@ export class Client implements Interface {
 
   async getInstanceEip(): Promise<Eip> {
     const { logger, drivers } = this.handlers;
-
     const data = await drivers.aws.ec2.send(
       new DescribeAddressesCommand({
         Filters: [
@@ -73,7 +72,37 @@ export class Client implements Interface {
   }
 
   async getFreeEips(): Promise<Eip[]> {
-    return [];
+    const { config, logger, drivers } = this.handlers;
+    const data = await drivers.aws.ec2.send(
+      new DescribeAddressesCommand({
+        Filters: [
+          {
+            Name: config.aws.tagName,
+            Values: [config.aws.tagValue],
+          },
+        ],
+      })
+    );
+    logger.debug(`eips: "${JSON.stringify(data)}"`);
+    if (!data.Addresses) {
+      throw new Error("no free eips found");
+    }
+    const eips: Eip[] = [];
+    for (const address of data.Addresses) {
+      const { AssociationId, AllocationId, PublicIp } = address;
+      if (AssociationId || !PublicIp || !AllocationId) {
+        continue;
+      }
+      eips.push({
+        id: AllocationId,
+        ip: PublicIp,
+      });
+    }
+    logger.debug(`free eips: "${JSON.stringify(eips)}"`);
+    if (eips.length > 0) {
+      return eips;
+    }
+    throw new Error("no free eips found");
   }
 
   async instanceHasEip(): Promise<boolean> {
