@@ -17,7 +17,7 @@ export interface Interface {
 }
 
 export class Service implements Interface {
-  labelDomain = "eip.aws.kubernetes.io";
+  labelDomain = "aws.node.eip";
 
   constructor(protected handlers: Handlers) {}
 
