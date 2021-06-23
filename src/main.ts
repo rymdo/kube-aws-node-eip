@@ -3,6 +3,7 @@ import { createLogger, LoggerInterface } from "./logger";
 import { sleep } from "./sleep";
 import * as K8S from "./k8s";
 import * as AWS from "./aws";
+import * as Service from "./service";
 
 import * as ApiClient from "kubernetes-client";
 
@@ -31,25 +32,24 @@ function createAWSClient(logger: LoggerInterface): AWS.Interface {
   });
 }
 
+function createService(logger: LoggerInterface): Service.Interface {
+  const k8s = createK8SClient(logger);
+  const aws = createAWSClient(logger);
+  return new Service.Service({
+    config,
+    logger,
+    aws,
+    k8s,
+    sleep,
+  });
+}
+
 async function run() {
   const logger = createLogger();
   logger.info("starting");
   logger.info(`config: ${JSON.stringify(config)}`);
-  const k8s = createK8SClient(logger);
-  const aws = createAWSClient(logger);
-
-  logger.info(JSON.stringify(await k8s.getNodeLabels()));
-  logger.info(JSON.stringify(await aws.getInstanceId()));
-  if (await aws.instanceHasEip()) {
-    logger.info(JSON.stringify(await aws.getInstanceEip()));
-  } else {
-    logger.info("instance has no eip");
-  }
-  try {
-    logger.info(JSON.stringify(await aws.getFreeEips()));
-  } catch (e) {
-    logger.info(e.toString());
-  }
+  const service = createService(logger);
+  await service.run();
 }
 
 process.on("SIGINT", function () {

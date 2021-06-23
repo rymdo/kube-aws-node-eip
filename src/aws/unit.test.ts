@@ -27,6 +27,10 @@ describe("aws", () => {
   ];
   const testAWSTagName = "Name";
   const testAWSTagValue = "tf-test-service-1";
+  const testGetFreeEIPDefault = {
+    name: testAWSTagName,
+    value: testAWSTagValue,
+  };
 
   let ec2Mock: any;
   let handlers: Handlers;
@@ -112,7 +116,7 @@ describe("aws", () => {
         },
       ];
       try {
-        await client.getFreeEips();
+        await client.getFreeEips(testGetFreeEIPDefault);
       } catch (e) {}
       expect(ec2Mock.calls(0)[0].firstArg.input.Filters).toEqual(
         expectedFilters
@@ -124,14 +128,14 @@ describe("aws", () => {
         client = new Client(handlers);
       });
       it("should throw 'no free eips found'", async () => {
-        await expect(client.getFreeEips()).rejects.toThrowError(
-          "no free eips found"
-        );
+        await expect(
+          client.getFreeEips(testGetFreeEIPDefault)
+        ).rejects.toThrowError("no free eips found");
       });
     });
     describe("given free eips exists", () => {
       it("should get all free eips", async () => {
-        const eips = await client.getFreeEips();
+        const eips = await client.getFreeEips(testGetFreeEIPDefault);
         const expectedEipsCount = testFreeEips.filter(
           (eip) => !eip.AssociationId
         );
@@ -229,11 +233,6 @@ describe("aws", () => {
   }
 
   function createMockConfig(): Config {
-    return {
-      aws: {
-        tagName: testAWSTagName,
-        tagValue: testAWSTagValue,
-      },
-    } as Config;
+    return {} as Config;
   }
 });

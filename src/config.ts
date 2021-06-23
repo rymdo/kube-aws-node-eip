@@ -15,8 +15,6 @@ export interface Config {
   nodeName: string;
   aws: {
     region: string;
-    tagName: string;
-    tagValue: string;
   };
 }
 
@@ -25,7 +23,5 @@ export const config: Config = {
   nodeName: getEnvOrFail("NODE_NAME"),
   aws: {
     region: getEnvOrFail("AWS_REGION"),
-    tagName: getEnvOrFail("AWS_TAG_NAME"),
-    tagValue: getEnvOrFail("AWS_TAG_VALUE"),
   },
 };

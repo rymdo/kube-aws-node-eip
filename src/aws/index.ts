@@ -23,7 +23,7 @@ export interface Handlers {
 export interface Interface {
   getInstanceEip(): Promise<Eip>;
   getInstanceId(): Promise<string>;
-  getFreeEips(): Promise<Eip[]>;
+  getFreeEips(tag: { name: string; value: string }): Promise<Eip[]>;
   instanceHasEip(): Promise<boolean>;
 }
 
@@ -71,14 +71,14 @@ export class Client implements Interface {
     }
   }
 
-  async getFreeEips(): Promise<Eip[]> {
-    const { config, logger, drivers } = this.handlers;
+  async getFreeEips(tag: { name: string; value: string }): Promise<Eip[]> {
+    const { logger, drivers } = this.handlers;
     const data = await drivers.aws.ec2.send(
       new DescribeAddressesCommand({
         Filters: [
           {
-            Name: `tag:${config.aws.tagName}`,
-            Values: [config.aws.tagValue],
+            Name: `tag:${tag.name}`,
+            Values: [tag.value],
           },
         ],
       })
