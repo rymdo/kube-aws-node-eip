@@ -12,6 +12,12 @@ export interface Eip {
   id: string;
   ip: string;
 }
+
+export interface NetworkInterface {
+  id: string;
+  ip: string;
+}
+
 export interface Handlers {
   config: Config;
   logger: LoggerInterface;
@@ -28,7 +34,7 @@ export interface Handlers {
 export interface Interface {
   getInstanceEip(): Promise<Eip>;
   getInstanceId(): Promise<string>;
-  getInstancePrimaryNetworkInterfaceId(): Promise<string>;
+  getInstancePrimaryNetworkInterface(): Promise<NetworkInterface>;
   getFreeEips(tag: { name: string; value: string }): Promise<Eip[]>;
   instanceHasEip(): Promise<boolean>;
   assignEiptoInstance(eip: Eip): Promise<void>;
@@ -78,7 +84,7 @@ export class Client implements Interface {
     }
   }
 
-  async getInstancePrimaryNetworkInterfaceId(): Promise<string> {
+  async getInstancePrimaryNetworkInterface(): Promise<NetworkInterface> {
     const { logger, drivers } = this.handlers;
     const instanceId = await this.getInstanceId();
     logger.debug(
@@ -101,9 +107,20 @@ export class Client implements Interface {
     ) {
       throw new Error("response invalid");
     }
+    if (
+      !data.NetworkInterfaces ||
+      !data.NetworkInterfaces[0] ||
+      !data.NetworkInterfaces[0].PrivateIpAddress
+    ) {
+      throw new Error("response invalid");
+    }
     const id = data.NetworkInterfaces[0].NetworkInterfaceId;
-    logger.debug(`instance network interface id: "${id}"`);
-    return id;
+    const ip = data.NetworkInterfaces[0].PrivateIpAddress;
+    logger.debug(`instance network interface id '${id}' ip '${ip}'`);
+    return {
+      id,
+      ip,
+    };
   }
 
   async getFreeEips(tag: { name: string; value: string }): Promise<Eip[]> {
@@ -151,17 +168,17 @@ export class Client implements Interface {
   async assignEiptoInstance(eip: Eip): Promise<void> {
     const { logger, drivers } = this.handlers;
     const instanceId = await this.getInstanceId();
-    const networkInterfaceId =
-      await this.getInstancePrimaryNetworkInterfaceId();
+    const networkInterface = await this.getInstancePrimaryNetworkInterface();
     logger.debug(
-      `associating eip '${eip.ip}' [${eip.id}] to network interface '${networkInterfaceId}' attached to instance '${instanceId}'`
+      `associating eip '${eip.ip}' [${eip.id}] to network interface '${networkInterface.id}' attached to instance '${instanceId}'`
     );
     try {
       await drivers.aws.ec2.send(
         new AssociateAddressCommand({
           AllocationId: eip.id,
           AllowReassociation: false,
-          NetworkInterfaceId: networkInterfaceId,
+          NetworkInterfaceId: networkInterface.id,
+          PrivateIpAddress: networkInterface.ip,
         })
       );
     } catch (e) {

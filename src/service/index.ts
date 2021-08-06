@@ -114,6 +114,8 @@ export class Service implements Interface {
 
     logger.debug("service/assignEip: assigning eip to instance");
     await aws.assignEiptoInstance(eips[0]);
+
+    logger.debug("service/assignEip: assigning eip to instance done");
   }
 
   async isReady(): Promise<boolean> {

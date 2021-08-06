@@ -36,6 +36,7 @@ describe("aws", () => {
     value: testAWSTagValue,
   };
   const testInstancePrimaryNetworkInterfaceId = "eni-e5aa89a3";
+  const testInstancePrimaryNetworkInterfaceIp = "123.123.123.213";
 
   let ec2Mock: any;
   let handlers: Handlers;
@@ -112,7 +113,7 @@ describe("aws", () => {
     });
   });
 
-  describe("on getInstancePrimaryNetworkInterfaceId", () => {
+  describe("on getInstancePrimaryNetworkInterface", () => {
     it("should use correct filters", async () => {
       const expectedFilters = [
         {
@@ -121,16 +122,21 @@ describe("aws", () => {
         },
       ];
       try {
-        await client.getInstancePrimaryNetworkInterfaceId();
+        await client.getInstancePrimaryNetworkInterface();
       } catch (e) {}
       expect(ec2Mock.calls(0)[0].firstArg.input.Filters).toEqual(
         expectedFilters
       );
     });
     it("should get correct interface id", async () => {
-      const networkInterfaceId =
-        await client.getInstancePrimaryNetworkInterfaceId();
-      expect(networkInterfaceId).toBe(testInstancePrimaryNetworkInterfaceId);
+      const networkInterface =
+        await client.getInstancePrimaryNetworkInterface();
+      expect(networkInterface.id).toBe(testInstancePrimaryNetworkInterfaceId);
+    });
+    it("should get correct interface ip", async () => {
+      const networkInterface =
+        await client.getInstancePrimaryNetworkInterface();
+      expect(networkInterface.ip).toBe(testInstancePrimaryNetworkInterfaceIp);
     });
   });
 
@@ -223,6 +229,14 @@ describe("aws", () => {
         testInstancePrimaryNetworkInterfaceId
       );
     });
+    it("should use correct PrivateIpAddress", async () => {
+      try {
+        await client.assignEiptoInstance(testEip);
+      } catch (e) {}
+      expect(ec2Mock.calls(0)[1].firstArg.input.PrivateIpAddress).toEqual(
+        testInstancePrimaryNetworkInterfaceIp
+      );
+    });
   });
 
   function createHandlers(eips = testFreeEips): Handlers {
@@ -265,7 +279,8 @@ describe("aws", () => {
           Values: [testInstanceIdWithEip],
         },
       ],
-      testInstancePrimaryNetworkInterfaceId
+      testInstancePrimaryNetworkInterfaceId,
+      testInstancePrimaryNetworkInterfaceIp
     );
     return {
       config: createMockConfig(),
@@ -306,7 +321,8 @@ describe("aws", () => {
   function addDescribeNetworkInterfacesCommand(
     mockClient: any,
     filters: any[],
-    networkInterfaceId: string
+    networkInterfaceId: string,
+    networkInterfaceIp: string
   ) {
     mockClient
       .on(
@@ -320,6 +336,7 @@ describe("aws", () => {
         NetworkInterfaces: [
           {
             NetworkInterfaceId: networkInterfaceId,
+            PrivateIpAddress: networkInterfaceIp,
           },
         ],
       });
