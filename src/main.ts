@@ -11,10 +11,18 @@ import { EC2Client } from "@aws-sdk/client-ec2";
 
 function createK8SClient(logger: LoggerInterface): K8S.Interface {
   const Client = ApiClient.Client1_13;
+  const util = require("util");
+  const exec = util.promisify(require("child_process").exec);
   return new K8S.Client({
     config,
     logger,
-    driver: new Client({ version: "1.13" }),
+    drivers: {
+      k8s: new Client({ version: "1.13" }),
+      exec: async (command) => {
+        const result = await exec(command);
+        return result.stdout.toString();
+      },
+    },
   });
 }
 

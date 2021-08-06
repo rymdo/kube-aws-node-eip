@@ -18,11 +18,16 @@ export interface Interface {
 
 export class Service implements Interface {
   labelDomain = "aws.node.eip";
+  taintNoEip: K8S.Taint = {
+    key: `${this.labelDomain}/no-eip`,
+    value: "no-eip",
+    effect: "NoExecute",
+  };
 
   constructor(protected handlers: Handlers) {}
 
   async run(): Promise<void> {
-    const { logger, sleep, aws } = this.handlers;
+    const { logger, sleep, aws, k8s } = this.handlers;
     logger.info("service/run: starting");
     let run = true;
     do {
@@ -39,12 +44,17 @@ export class Service implements Interface {
 
         logger.debug("service/run: checking if node is ready");
         const isReady = await this.isReady();
+        const hasTaint = await k8s.nodeHasTaint(this.taintNoEip);
         if (isReady) {
-          logger.debug("service/run: removing node taint");
-          // ToDo: Remove Taint
+          if (hasTaint) {
+            logger.debug("service/run: removing node taint");
+            await k8s.removeNodeTaint(this.taintNoEip);
+          }
         } else {
-          logger.debug("service/run: adding node taint");
-          // ToDo: Set Taint
+          if (!hasTaint) {
+            logger.debug("service/run: adding node taint");
+            await k8s.addNodeTaint(this.taintNoEip);
+          }
         }
 
         logger.debug("service/run: checking if node has eip assigned");
