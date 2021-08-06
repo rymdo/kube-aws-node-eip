@@ -8,6 +8,8 @@ import {
   DescribeNetworkInterfacesCommand,
 } from "@aws-sdk/client-ec2";
 
+import * as EC2Types from "@aws-sdk/client-ec2";
+
 export interface Eip {
   id: string;
   ip: string;
@@ -100,27 +102,38 @@ export class Client implements Interface {
         ],
       })
     );
-    if (
-      !data.NetworkInterfaces ||
-      !data.NetworkInterfaces[0] ||
-      !data.NetworkInterfaces[0].NetworkInterfaceId
-    ) {
-      throw new Error("response invalid");
+    if (!data.NetworkInterfaces) {
+      throw new Error("response invalid (data.NetworkInterfaces)");
     }
+    const networkInterface = this.getNetworkInterfaceWithPublicIp(
+      data.NetworkInterfaces
+    );
     if (
-      !data.NetworkInterfaces ||
-      !data.NetworkInterfaces[0] ||
-      !data.NetworkInterfaces[0].PrivateIpAddress
+      !networkInterface.NetworkInterfaceId ||
+      !networkInterface.PrivateIpAddress
     ) {
-      throw new Error("response invalid");
+      throw new Error(
+        "response invalid (networkInterface.NetworkInterfaceId/networkInterface.PrivateIpAddress)"
+      );
     }
-    const id = data.NetworkInterfaces[0].NetworkInterfaceId;
-    const ip = data.NetworkInterfaces[0].PrivateIpAddress;
+    const id = networkInterface.NetworkInterfaceId;
+    const ip = networkInterface.PrivateIpAddress;
     logger.debug(`instance network interface id '${id}' ip '${ip}'`);
     return {
       id,
       ip,
     };
+  }
+
+  getNetworkInterfaceWithPublicIp(
+    networkInterfaces: EC2Types.NetworkInterface[]
+  ): EC2Types.NetworkInterface {
+    for (const networkInterface of networkInterfaces) {
+      if (networkInterface.Association?.PublicIp) {
+        return networkInterface;
+      }
+    }
+    throw new Error("network interface with public ip not found");
   }
 
   async getFreeEips(tag: { name: string; value: string }): Promise<Eip[]> {

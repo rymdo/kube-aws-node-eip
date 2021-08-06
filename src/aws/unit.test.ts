@@ -335,8 +335,19 @@ describe("aws", () => {
       .resolves({
         NetworkInterfaces: [
           {
+            NetworkInterfaceId: "i-12341343",
+            PrivateIpAddress: "1.2.3.4",
+          },
+          {
             NetworkInterfaceId: networkInterfaceId,
             PrivateIpAddress: networkInterfaceIp,
+            Association: {
+              PublicIp: "13.421.41.1",
+            },
+          },
+          {
+            NetworkInterfaceId: "i-534643634",
+            PrivateIpAddress: "4.5.6.7",
           },
         ],
       });
