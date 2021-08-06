@@ -39,19 +39,20 @@ export class Service implements Interface {
 
         logger.debug("service/run: checking if node has eip assigned");
         const hasEip = await aws.instanceHasEip();
-        if (hasEip) {
+        if (!hasEip) {
+          logger.debug("service/run: assigning eip to node");
+          await this.assignEip();
+        } else {
           logger.debug("service/run: instance already has eip");
+        }
+
+        const isReady = await this.isReady();
+        if (isReady) {
           logger.debug("service/run: removing node taint");
           // ToDo: Remove Taint
         } else {
           logger.debug("service/run: setting node taint");
           // ToDo: Set Taint
-
-          logger.debug("service/run: assigning eip to node");
-          await this.assignEip();
-
-          logger.debug("service/run: removing node taint");
-          // ToDo: Remove Taint
         }
       } catch (e) {
         logger.error(`service/run: ${e.toString()}`);
@@ -111,6 +112,11 @@ export class Service implements Interface {
     logger.debug("service/assignEip: getting free eips");
     const eips = await aws.getFreeEips(tag);
 
-    // ToDo: Assign EIP to instance
+    logger.debug("service/assignEip: assigning eip to instance");
+    await aws.assignEiptoInstance(eips[0]);
+  }
+
+  async isReady(): Promise<boolean> {
+    return false;
   }
 }

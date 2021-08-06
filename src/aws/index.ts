@@ -1,7 +1,12 @@
 import { Config } from "../config";
 import { LoggerInterface } from "../logger";
 
-import { EC2Client, DescribeAddressesCommand } from "@aws-sdk/client-ec2";
+import {
+  EC2Client,
+  DescribeAddressesCommand,
+  AssociateAddressCommand,
+  DescribeNetworkInterfacesCommand,
+} from "@aws-sdk/client-ec2";
 
 export interface Eip {
   id: string;
@@ -23,8 +28,10 @@ export interface Handlers {
 export interface Interface {
   getInstanceEip(): Promise<Eip>;
   getInstanceId(): Promise<string>;
+  getInstancePrimaryNetworkInterfaceId(): Promise<string>;
   getFreeEips(tag: { name: string; value: string }): Promise<Eip[]>;
   instanceHasEip(): Promise<boolean>;
+  assignEiptoInstance(eip: Eip): Promise<void>;
 }
 
 export class Client implements Interface {
@@ -71,6 +78,34 @@ export class Client implements Interface {
     }
   }
 
+  async getInstancePrimaryNetworkInterfaceId(): Promise<string> {
+    const { logger, drivers } = this.handlers;
+    const instanceId = await this.getInstanceId();
+    logger.debug(
+      `getting instance primary network interface id from instance '${instanceId}'`
+    );
+    const data = await drivers.aws.ec2.send(
+      new DescribeNetworkInterfacesCommand({
+        Filters: [
+          {
+            Name: `attachment.instance-id`,
+            Values: [instanceId],
+          },
+        ],
+      })
+    );
+    if (
+      !data.NetworkInterfaces ||
+      !data.NetworkInterfaces[0] ||
+      !data.NetworkInterfaces[0].NetworkInterfaceId
+    ) {
+      throw new Error("response invalid");
+    }
+    const id = data.NetworkInterfaces[0].NetworkInterfaceId;
+    logger.debug(`instance network interface id: "${id}"`);
+    return id;
+  }
+
   async getFreeEips(tag: { name: string; value: string }): Promise<Eip[]> {
     const { logger, drivers } = this.handlers;
     const data = await drivers.aws.ec2.send(
@@ -111,5 +146,27 @@ export class Client implements Interface {
       return true;
     } catch (e) {}
     return false;
+  }
+
+  async assignEiptoInstance(eip: Eip): Promise<void> {
+    const { logger, drivers } = this.handlers;
+    const instanceId = await this.getInstanceId();
+    const networkInterfaceId =
+      await this.getInstancePrimaryNetworkInterfaceId();
+    logger.debug(
+      `associating eip '${eip.ip}' [${eip.id}] to network interface '${networkInterfaceId}' attached to instance '${instanceId}'`
+    );
+    try {
+      await drivers.aws.ec2.send(
+        new AssociateAddressCommand({
+          AllocationId: eip.id,
+          AllowReassociation: false,
+          NetworkInterfaceId: networkInterfaceId,
+        })
+      );
+    } catch (e) {
+      logger.error(`${e.toString()}`);
+      throw new Error("failed to assign eip");
+    }
   }
 }

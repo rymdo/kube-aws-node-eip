@@ -1,8 +1,12 @@
-import { Handlers, Client } from ".";
+import { Handlers, Client, Eip } from ".";
 import { Config } from "../config";
 import { createMockLogger } from "../mocks/logger";
 
-import { EC2Client, DescribeAddressesCommand } from "@aws-sdk/client-ec2";
+import {
+  EC2Client,
+  DescribeAddressesCommand,
+  DescribeNetworkInterfacesCommand,
+} from "@aws-sdk/client-ec2";
 import { mockClient } from "aws-sdk-client-mock";
 
 describe("aws", () => {
@@ -31,6 +35,7 @@ describe("aws", () => {
     name: testAWSTagName,
     value: testAWSTagValue,
   };
+  const testInstancePrimaryNetworkInterfaceId = "eni-e5aa89a3";
 
   let ec2Mock: any;
   let handlers: Handlers;
@@ -107,6 +112,28 @@ describe("aws", () => {
     });
   });
 
+  describe("on getInstancePrimaryNetworkInterfaceId", () => {
+    it("should use correct filters", async () => {
+      const expectedFilters = [
+        {
+          Name: `attachment.instance-id`,
+          Values: [testInstanceIdWithEip],
+        },
+      ];
+      try {
+        await client.getInstancePrimaryNetworkInterfaceId();
+      } catch (e) {}
+      expect(ec2Mock.calls(0)[0].firstArg.input.Filters).toEqual(
+        expectedFilters
+      );
+    });
+    it("should get correct interface id", async () => {
+      const networkInterfaceId =
+        await client.getInstancePrimaryNetworkInterfaceId();
+      expect(networkInterfaceId).toBe(testInstancePrimaryNetworkInterfaceId);
+    });
+  });
+
   describe("on getFreeEips", () => {
     it("should check for eips with correct filters", async () => {
       const expectedFilters = [
@@ -166,54 +193,80 @@ describe("aws", () => {
     });
   });
 
+  describe("on assignEiptoInstance", () => {
+    const testEip: Eip = {
+      id: "123",
+      ip: "1.1.1.1",
+    };
+    it("should use correct AllocationId", async () => {
+      try {
+        await client.assignEiptoInstance(testEip);
+      } catch (e) {}
+      expect(ec2Mock.calls(0)[1].firstArg.input.AllocationId).toEqual(
+        testEip.id
+      );
+    });
+    it("should have AllowReassociation to false", async () => {
+      try {
+        await client.assignEiptoInstance(testEip);
+      } catch (e) {}
+      expect(
+        ec2Mock.calls(0)[1].firstArg.input.AllowReassociation
+      ).toBeDefined();
+      expect(ec2Mock.calls(0)[1].firstArg.input.AllowReassociation).toBeFalsy();
+    });
+    it("should use correct NetworkInterfaceId", async () => {
+      try {
+        await client.assignEiptoInstance(testEip);
+      } catch (e) {}
+      expect(ec2Mock.calls(0)[1].firstArg.input.NetworkInterfaceId).toEqual(
+        testInstancePrimaryNetworkInterfaceId
+      );
+    });
+  });
+
   function createHandlers(eips = testFreeEips): Handlers {
     ec2Mock = mockClient(new EC2Client({}));
-    ec2Mock
-      .on(
-        DescribeAddressesCommand,
+    addDescribeAddressesCommand(
+      ec2Mock,
+      [
         {
-          Filters: [
-            {
-              Name: "instance-id",
-              Values: [testInstanceIdWithEip],
-            },
-          ],
+          Name: "instance-id",
+          Values: [testInstanceIdWithEip],
         },
-        true
-      )
-      .resolves({
-        Addresses: [{ AllocationId: testEipId, PublicIp: testEip }],
-      })
-      .on(
-        DescribeAddressesCommand,
+      ],
+      [{ AllocationId: testEipId, PublicIp: testEip }]
+    );
+    addDescribeAddressesCommand(
+      ec2Mock,
+      [
         {
-          Filters: [
-            {
-              Name: "instance-id",
-              Values: [testInstanceIdWithoutEip],
-            },
-          ],
+          Name: "instance-id",
+          Values: [testInstanceIdWithoutEip],
         },
-        true
-      )
-      .resolves({
-        Addresses: [],
-      })
-      .on(
-        DescribeAddressesCommand,
+      ],
+      []
+    );
+    addDescribeAddressesCommand(
+      ec2Mock,
+      [
         {
-          Filters: [
-            {
-              Name: `tag:${testAWSTagName}`,
-              Values: [testAWSTagValue],
-            },
-          ],
+          Name: `tag:${testAWSTagName}`,
+          Values: [testAWSTagValue],
         },
-        true
-      )
-      .resolves({
-        Addresses: eips,
-      });
+      ],
+      eips
+    );
+    addDescribeNetworkInterfacesCommand(
+      ec2Mock,
+      [
+        {
+          Name: `attachment.instance-id`,
+          Values: [testInstanceIdWithEip],
+        },
+      ],
+      testInstancePrimaryNetworkInterfaceId
+    );
     return {
       config: createMockConfig(),
       logger: createMockLogger(),
@@ -230,6 +283,46 @@ describe("aws", () => {
         },
       },
     };
+  }
+
+  function addDescribeAddressesCommand(
+    mockClient: any,
+    filters: any[],
+    responseAddresses: any[]
+  ) {
+    mockClient
+      .on(
+        DescribeAddressesCommand,
+        {
+          Filters: filters,
+        },
+        true
+      )
+      .resolves({
+        Addresses: responseAddresses,
+      });
+  }
+
+  function addDescribeNetworkInterfacesCommand(
+    mockClient: any,
+    filters: any[],
+    networkInterfaceId: string
+  ) {
+    mockClient
+      .on(
+        DescribeNetworkInterfacesCommand,
+        {
+          Filters: filters,
+        },
+        true
+      )
+      .resolves({
+        NetworkInterfaces: [
+          {
+            NetworkInterfaceId: networkInterfaceId,
+          },
+        ],
+      });
   }
 
   function createMockConfig(): Config {
