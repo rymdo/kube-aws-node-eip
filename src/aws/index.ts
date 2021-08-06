@@ -36,6 +36,7 @@ export interface Handlers {
 export interface Interface {
   getInstanceEip(): Promise<Eip>;
   getInstanceId(): Promise<string>;
+  getInstancePublicIp(): Promise<string>;
   getInstancePrimaryNetworkInterface(): Promise<NetworkInterface>;
   getFreeEips(tag: { name: string; value: string }): Promise<Eip[]>;
   instanceHasEip(): Promise<boolean>;
@@ -83,6 +84,21 @@ export class Client implements Interface {
     } catch (e) {
       logger.error(`${e.toString()}`);
       throw new Error("failed to get instance id");
+    }
+  }
+
+  async getInstancePublicIp(): Promise<string> {
+    const { logger, drivers } = this.handlers;
+    const url = "http://169.254.169.254/latest/meta-data/public-ipv4";
+    logger.debug(`getting instance public ip from url "${url}"`);
+    try {
+      const result = await drivers.http.get(url);
+      const ip = result.data;
+      logger.debug(`instance public ip: "${ip}"`);
+      return ip;
+    } catch (e) {
+      logger.error(`${e.toString()}`);
+      throw new Error("failed to get instance public ip");
     }
   }
 

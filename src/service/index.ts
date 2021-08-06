@@ -37,6 +37,16 @@ export class Service implements Interface {
           break;
         }
 
+        logger.debug("service/run: checking if node is ready");
+        const isReady = await this.isReady();
+        if (isReady) {
+          logger.debug("service/run: removing node taint");
+          // ToDo: Remove Taint
+        } else {
+          logger.debug("service/run: adding node taint");
+          // ToDo: Set Taint
+        }
+
         logger.debug("service/run: checking if node has eip assigned");
         const hasEip = await aws.instanceHasEip();
         if (!hasEip) {
@@ -44,15 +54,6 @@ export class Service implements Interface {
           await this.assignEip();
         } else {
           logger.debug("service/run: instance already has eip");
-        }
-
-        const isReady = await this.isReady();
-        if (isReady) {
-          logger.debug("service/run: removing node taint");
-          // ToDo: Remove Taint
-        } else {
-          logger.debug("service/run: setting node taint");
-          // ToDo: Set Taint
         }
       } catch (e) {
         logger.error(`service/run: ${e.toString()}`);
@@ -119,6 +120,20 @@ export class Service implements Interface {
   }
 
   async isReady(): Promise<boolean> {
-    return false;
+    const { aws, logger } = this.handlers;
+    const hasEip = await aws.instanceHasEip();
+    if (!hasEip) {
+      return false;
+    }
+    const assignedEip = await aws.getInstanceEip();
+    const publicIp = await aws.getInstancePublicIp();
+    logger.debug(
+      "service/isReady: checking if assigned ip and public if from metedata match"
+    );
+    const result = assignedEip.ip === publicIp;
+    logger.debug(
+      `service/isReady: result '${result}' (${assignedEip.ip} === ${publicIp})`
+    );
+    return result;
   }
 }

@@ -73,6 +73,41 @@ describe("aws", () => {
     });
   });
 
+  describe("on getInstancePublicIp", () => {
+    const testInstancePublicIp = "123.123.123.123";
+
+    it("should http with correct url", async () => {
+      const expectedUrl = "http://169.254.169.254/latest/meta-data/public-ipv4";
+      let actualUrl = "";
+      handlers.drivers.http.get = async (url: string) => {
+        actualUrl = url;
+        return testInstancePublicIp;
+      };
+      await client.getInstancePublicIp();
+      expect(actualUrl).toBe(expectedUrl);
+    });
+
+    it("should throw error on eg. timeout", async () => {
+      handlers.drivers.http.get = async () => {
+        throw new Error("timeout");
+      };
+      await expect(client.getInstancePublicIp()).rejects.toThrowError(
+        "failed to get instance public ip"
+      );
+    });
+
+    it("should get instance id", async () => {
+      handlers.drivers.http.get = async () => {
+        return {
+          data: testInstancePublicIp,
+        };
+      };
+      await expect(client.getInstancePublicIp()).resolves.toBe(
+        testInstancePublicIp
+      );
+    });
+  });
+
   describe("on getInstanceEip", () => {
     it("should check for addressess with correct filters", async () => {
       const expectedFilters = [
