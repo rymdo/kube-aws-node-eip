@@ -25,7 +25,9 @@
   "dependencies": {
     "@aws-sdk/client-ec2": "^3.18.0",
     "axios": "^0.21.1",
+    "express": "^4.17.1",
     "kubernetes-client": "^9.0.0",
+    "prom-client": "^13.2.0",
     "winston": "^3.3.3"
   }
 }

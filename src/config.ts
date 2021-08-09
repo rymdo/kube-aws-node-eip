@@ -16,6 +16,9 @@ export interface Config {
   aws: {
     region: string;
   };
+  metrics: {
+    port: number;
+  };
 }
 
 export const config: Config = {
@@ -23,5 +26,8 @@ export const config: Config = {
   nodeName: getEnvOrFail("NODE_NAME"),
   aws: {
     region: getEnvOrFail("AWS_REGION"),
+  },
+  metrics: {
+    port: Number(getEnvOrDefault("METRICS_PORT", "9100")),
   },
 };

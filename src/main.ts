@@ -1,8 +1,10 @@
 import { config } from "./config";
 import { createLogger, LoggerInterface } from "./logger";
 import { sleep } from "./sleep";
+
 import * as K8S from "./k8s";
 import * as AWS from "./aws";
+import * as Metrics from "./metrics";
 import * as Service from "./service";
 
 import * as ApiClient from "kubernetes-client";
@@ -40,9 +42,31 @@ function createAWSClient(logger: LoggerInterface): AWS.Interface {
   });
 }
 
+function createMetricsServer(
+  logger: LoggerInterface,
+  aws: AWS.Interface
+): Metrics.Interface {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const http = require("express")();
+
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const prometheus = require("prom-client");
+
+  return new Metrics.Server({
+    config,
+    logger,
+    drivers: {
+      aws,
+      http,
+      prometheus,
+    },
+  });
+}
+
 function createService(logger: LoggerInterface): Service.Interface {
   const k8s = createK8SClient(logger);
   const aws = createAWSClient(logger);
+  createMetricsServer(logger, aws);
   return new Service.Service({
     config,
     logger,
