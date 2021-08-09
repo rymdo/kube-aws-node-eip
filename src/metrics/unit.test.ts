@@ -20,6 +20,7 @@ class MockGauge {
 describe("metrics", () => {
   const testConfigPort = 9100;
   const testEip = "123.0.1.3";
+  const testInstanceId = "i-123123123";
 
   let handlers: Handlers;
   let server: Server;
@@ -63,6 +64,9 @@ describe("metrics", () => {
     const metricBridgedCallsCount = server.gaugeHasEip as MockGauge;
     expect(
       metricBridgedCallsCount.config.labelNames.includes("eip")
+    ).toBeTruthy();
+    expect(
+      metricBridgedCallsCount.config.labelNames.includes("instance_id")
     ).toBeTruthy();
   });
 
@@ -121,6 +125,7 @@ describe("metrics", () => {
         await server.getMetrics({}, res);
         const gauge = server.gaugeHasEip as MockGauge;
         expect(gauge.mockCurrentLabels["eip"]).toEqual(testEip);
+        expect(gauge.mockCurrentLabels["instance_id"]).toEqual(testInstanceId);
       });
       it("should set correct status for hasEip gauge", async () => {
         const res = {
@@ -148,6 +153,7 @@ describe("metrics", () => {
         await server.getMetrics({}, res);
         const gauge = server.gaugeHasEip as MockGauge;
         expect(gauge.mockCurrentLabels["eip"]).toEqual("no-eip");
+        expect(gauge.mockCurrentLabels["instance_id"]).toEqual(testInstanceId);
       });
       it("should set correct status for hasEip gauge", async () => {
         const res = {
@@ -185,6 +191,7 @@ describe("metrics", () => {
               ip: testEip,
             };
           },
+          getInstanceId: async () => testInstanceId,
         } as AWS.Interface,
       },
     };

@@ -36,7 +36,7 @@ export class Server implements Interface {
     this.gaugeHasEip = new drivers.prometheus.Gauge({
       name: "node_has_eip",
       help: "indicates if node has assigned eip",
-      labelNames: ["eip"],
+      labelNames: ["eip", "instance_id"],
     });
 
     drivers.http.get(this.path, this.getMetrics);
@@ -56,11 +56,12 @@ export class Server implements Interface {
 
   private async updateMetrics(): Promise<void> {
     const { drivers } = this.handlers;
+    const instanceId = await drivers.aws.getInstanceId();
     try {
       const { ip } = await drivers.aws.getInstanceEip();
-      this.gaugeHasEip.set({ eip: ip }, 1);
+      this.gaugeHasEip.set({ instance_id: instanceId, eip: ip }, 1);
     } catch (e) {
-      this.gaugeHasEip.set({ eip: "no-eip" }, 0);
+      this.gaugeHasEip.set({ instance_id: instanceId, eip: "no-eip" }, 0);
     }
   }
 
