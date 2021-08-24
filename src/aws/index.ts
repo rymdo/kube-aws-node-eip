@@ -44,16 +44,21 @@ export interface Interface {
 }
 
 export class Client implements Interface {
+  instanceId = "";
+
   constructor(protected handlers: Handlers) {}
 
   async getInstanceEip(): Promise<Eip> {
     const { logger, drivers } = this.handlers;
+    if (this.instanceId === "") {
+      this.instanceId = await this.getInstanceId();
+    }
     const data = await drivers.aws.ec2.send(
       new DescribeAddressesCommand({
         Filters: [
           {
             Name: "instance-id",
-            Values: [await this.getInstanceId()],
+            Values: [this.instanceId],
           },
         ],
       })
@@ -104,16 +109,18 @@ export class Client implements Interface {
 
   async getInstancePrimaryNetworkInterface(): Promise<NetworkInterface> {
     const { logger, drivers } = this.handlers;
-    const instanceId = await this.getInstanceId();
+    if (this.instanceId === "") {
+      this.instanceId = await this.getInstanceId();
+    }
     logger.debug(
-      `getting instance primary network interface id from instance '${instanceId}'`
+      `getting instance primary network interface id from instance '${this.instanceId}'`
     );
     const data = await drivers.aws.ec2.send(
       new DescribeNetworkInterfacesCommand({
         Filters: [
           {
             Name: `attachment.instance-id`,
-            Values: [instanceId],
+            Values: [this.instanceId],
           },
         ],
       })
@@ -196,10 +203,12 @@ export class Client implements Interface {
 
   async assignEiptoInstance(eip: Eip): Promise<void> {
     const { logger, drivers } = this.handlers;
-    const instanceId = await this.getInstanceId();
+    if (this.instanceId === "") {
+      this.instanceId = await this.getInstanceId();
+    }
     const networkInterface = await this.getInstancePrimaryNetworkInterface();
     logger.debug(
-      `associating eip '${eip.ip}' [${eip.id}] to network interface '${networkInterface.id}' attached to instance '${instanceId}'`
+      `associating eip '${eip.ip}' [${eip.id}] to network interface '${networkInterface.id}' attached to instance '${this.instanceId}'`
     );
     try {
       await drivers.aws.ec2.send(

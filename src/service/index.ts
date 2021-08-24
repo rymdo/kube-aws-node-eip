@@ -23,6 +23,8 @@ export class Service implements Interface {
     value: "no-eip",
     effect: "NoExecute",
   };
+  noEipCounter = 0;
+  noEipCounterLimit = 6;
 
   constructor(protected handlers: Handlers) {}
 
@@ -46,14 +48,21 @@ export class Service implements Interface {
         const isReady = await this.isReady();
         const hasTaint = await k8s.nodeHasTaint(this.taintNoEip);
         if (isReady) {
+          this.noEipCounter = 0;
           if (hasTaint) {
             logger.debug("service/run: removing node taint");
             await k8s.removeNodeTaint(this.taintNoEip);
           }
         } else {
-          if (!hasTaint) {
-            logger.debug("service/run: adding node taint");
-            await k8s.addNodeTaint(this.taintNoEip);
+          this.noEipCounter += 1;
+          logger.info(
+            `service/run: no eip. Counter '${this.noEipCounter}', limit '${this.noEipCounterLimit}'`
+          );
+          if (this.noEipCounter >= this.noEipCounterLimit) {
+            if (!hasTaint) {
+              logger.debug("service/run: adding node taint");
+              await k8s.addNodeTaint(this.taintNoEip);
+            }
           }
         }
 
