@@ -24,12 +24,12 @@ export class Service implements Interface {
     effect: "NoExecute",
   };
   noEipCounter = 0;
-  noEipCounterLimit = 6;
+  noEipCounterLimit = 3;
 
   constructor(protected handlers: Handlers) {}
 
   async run(): Promise<void> {
-    const { logger, sleep, aws, k8s } = this.handlers;
+    const { logger, config, sleep, aws, k8s } = this.handlers;
     logger.info("service/run: starting");
     let run = true;
     do {
@@ -58,7 +58,7 @@ export class Service implements Interface {
           logger.info(
             `service/run: no eip. Counter '${this.noEipCounter}', limit '${this.noEipCounterLimit}'`
           );
-          if (this.noEipCounter >= this.noEipCounterLimit) {
+          if (this.noEipCounter > this.noEipCounterLimit) {
             if (!hasTaint) {
               logger.debug("service/run: adding node taint");
               await k8s.addNodeTaint(this.taintNoEip);
@@ -77,7 +77,7 @@ export class Service implements Interface {
       } catch (e) {
         logger.error(`service/run: ${e.toString()}`);
       }
-      await sleep(10000);
+      await sleep(config.checkInterval * 1000);
     } while (run);
   }
 

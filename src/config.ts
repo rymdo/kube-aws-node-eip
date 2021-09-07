@@ -13,6 +13,7 @@ function getEnvOrFail(env: string): string {
 export interface Config {
   logLevel: string;
   nodeName: string;
+  checkInterval: number;
   aws: {
     region: string;
   };
@@ -24,6 +25,7 @@ export interface Config {
 export const config: Config = {
   logLevel: getEnvOrDefault("LOG_LEVEL", "info"),
   nodeName: getEnvOrFail("NODE_NAME"),
+  checkInterval: Number(getEnvOrDefault("CHECK_INTERVAL", "60")),
   aws: {
     region: getEnvOrFail("AWS_REGION"),
   },
