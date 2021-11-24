@@ -27,6 +27,7 @@ export class Server implements Interface {
   public path = "/metrics";
 
   instanceId = "";
+  instanceEip = "";
 
   constructor(protected handlers: Handlers) {
     const { logger, config, drivers } = handlers;
@@ -62,8 +63,14 @@ export class Server implements Interface {
       this.instanceId = await drivers.aws.getInstanceId();
     }
     try {
-      const { ip } = await drivers.aws.getInstanceEip();
-      this.gaugeHasEip.set({ instance_id: this.instanceId, eip: ip }, 1);
+      if (this.instanceEip === "") {
+        const eip = await drivers.aws.getInstanceEip();
+        this.instanceEip = eip.ip;
+      }
+      this.gaugeHasEip.set(
+        { instance_id: this.instanceId, eip: this.instanceEip },
+        1
+      );
     } catch (e) {
       this.gaugeHasEip.set({ instance_id: this.instanceId, eip: "no-eip" }, 0);
     }

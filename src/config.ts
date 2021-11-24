@@ -25,7 +25,7 @@ export interface Config {
 export const config: Config = {
   logLevel: getEnvOrDefault("LOG_LEVEL", "info"),
   nodeName: getEnvOrFail("NODE_NAME"),
-  checkInterval: Number(getEnvOrDefault("CHECK_INTERVAL", "60")),
+  checkInterval: Number(getEnvOrDefault("CHECK_INTERVAL", "180")),
   aws: {
     region: getEnvOrFail("AWS_REGION"),
   },

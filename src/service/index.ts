@@ -18,13 +18,8 @@ export interface Interface {
 
 export class Service implements Interface {
   labelDomain = "aws.node.eip";
-  taintNoEip: K8S.Taint = {
-    key: `${this.labelDomain}/no-eip`,
-    value: "no-eip",
-    effect: "NoExecute",
-  };
-  noEipCounter = 0;
-  noEipCounterLimit = 3;
+  labelEnabledKey = `${this.labelDomain}/enabled`;
+  labelEipKey = `${this.labelDomain}/current-eip`;
 
   constructor(protected handlers: Handlers) {}
 
@@ -39,40 +34,34 @@ export class Service implements Interface {
         if (!enabled) {
           run = false;
           logger.error(
-            `service/run: service is not enabled for this node. required label: '${this.labelDomain}/enabled'='true'`
+            `service/run: service is not enabled for this node. required label: '${this.labelEnabledKey}'='true'`
           );
           break;
         }
 
-        logger.debug("service/run: checking if node is ready");
-        const isReady = await this.isReady();
-        const hasTaint = await k8s.nodeHasTaint(this.taintNoEip);
-        if (isReady) {
-          this.noEipCounter = 0;
-          if (hasTaint) {
-            logger.debug("service/run: removing node taint");
-            await k8s.removeNodeTaint(this.taintNoEip);
-          }
-        } else {
-          this.noEipCounter += 1;
+        logger.debug("service/run: checking if node has label assigned");
+        const hasLabel = await this.hasLabel();
+        if (!hasLabel) {
           logger.info(
-            `service/run: no eip. Counter '${this.noEipCounter}', limit '${this.noEipCounterLimit}'`
+            `service/run: node does not have label '${this.labelEipKey}' set`
           );
-          if (this.noEipCounter > this.noEipCounterLimit) {
-            if (!hasTaint) {
-              logger.debug("service/run: adding node taint");
-              await k8s.addNodeTaint(this.taintNoEip);
-            }
-          }
-        }
 
-        logger.debug("service/run: checking if node has eip assigned");
-        const hasEip = await aws.instanceHasEip();
-        if (!hasEip) {
-          logger.debug("service/run: assigning eip to node");
-          await this.assignEip();
-        } else {
-          logger.debug("service/run: instance already has eip");
+          logger.info(`service/run: checking if node has eip assigned`);
+          const hasEip = await aws.instanceHasEip();
+          if (!hasEip) {
+            logger.info(`service/run: node does not have eip assigned`);
+            logger.info("service/run: assigning eip to node");
+            await this.assignEip();
+          }
+
+          logger.info("service/run: assigning label to node");
+          const eip = await aws.getInstanceEip();
+          const label: K8S.Label = {
+            key: this.labelEipKey,
+            value: eip.ip,
+          };
+          logger.info(`service/run: ${label.key}=${label.value}`);
+          k8s.addNodeLabel(label);
         }
       } catch (e) {
         logger.error(`service/run: ${e.toString()}`);
@@ -89,7 +78,7 @@ export class Service implements Interface {
 
     for (const [key, value] of Object.entries(labels)) {
       logger.debug(`service/isEnabled: checking '${key}'='${value}'`);
-      if (key !== `${this.labelDomain}/enabled`) {
+      if (key !== `${this.labelEnabledKey}`) {
         continue;
       }
       if (value !== "true") {
@@ -104,7 +93,7 @@ export class Service implements Interface {
   }
 
   async assignEip(): Promise<void> {
-    const { logger, aws, k8s } = this.handlers;
+    const { logger, aws, k8s, sleep } = this.handlers;
 
     logger.debug("service/assignEip: getting node labels");
     const labels = await k8s.getNodeLabels();
@@ -136,23 +125,11 @@ export class Service implements Interface {
     await aws.assignEiptoInstance(eips[0]);
 
     logger.debug("service/assignEip: assigning eip to instance done");
+    await sleep(1000);
   }
 
-  async isReady(): Promise<boolean> {
-    const { aws, logger } = this.handlers;
-    const hasEip = await aws.instanceHasEip();
-    if (!hasEip) {
-      return false;
-    }
-    const assignedEip = await aws.getInstanceEip();
-    const publicIp = await aws.getInstancePublicIp();
-    logger.debug(
-      "service/isReady: checking if assigned ip and public if from metedata match"
-    );
-    const result = assignedEip.ip === publicIp;
-    logger.debug(
-      `service/isReady: result '${result}' (${assignedEip.ip} === ${publicIp})`
-    );
-    return result;
+  async hasLabel(): Promise<boolean> {
+    const { k8s } = this.handlers;
+    return await k8s.nodeHasLabelWithKey(this.labelEipKey);
   }
 }

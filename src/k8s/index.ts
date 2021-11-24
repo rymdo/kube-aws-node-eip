@@ -28,27 +28,23 @@ export interface Handlers {
   };
 }
 
-export interface Taint {
+export interface Label {
   key: string;
   value: string;
-  effect: string;
 }
 
 export interface Node {
   metadata: {
     labels: { [key: string]: string };
   };
-  spec?: {
-    taints?: Taint[];
-  };
 }
 
 export interface Interface {
   getNode(): Promise<Node>;
   getNodeLabels(): Promise<{ [key: string]: string }>;
-  nodeHasTaint(taint: Taint): Promise<boolean>;
-  addNodeTaint(taint: Taint): Promise<void>;
-  removeNodeTaint(taint: Taint): Promise<void>;
+  nodeHasLabelWithKey(labelKey: string): Promise<boolean>;
+  addNodeLabel(label: Label): Promise<void>;
+  removeNodeLabel(label: Label): Promise<void>;
 }
 
 export class Client implements Interface {
@@ -79,43 +75,30 @@ export class Client implements Interface {
     }
   }
 
-  async nodeHasTaint(taint: Taint): Promise<boolean> {
-    const node = await this.getNode();
-    if (!node?.spec?.taints) {
-      return false;
-    }
-    if (!Array.isArray(node.spec.taints)) {
-      return false;
-    }
-    for (const nodeTaint of node.spec.taints) {
-      if (taint.key !== nodeTaint.key) {
-        continue;
+  async nodeHasLabelWithKey(labelKey: string): Promise<boolean> {
+    const labels = await this.getNodeLabels();
+    for (const [key, value] of Object.entries(labels)) {
+      if (key === labelKey) {
+        return true;
       }
-      if (taint.value !== nodeTaint.value) {
-        continue;
-      }
-      if (taint.effect !== nodeTaint.effect) {
-        continue;
-      }
-      return true;
     }
     return false;
   }
 
-  async addNodeTaint(taint: Taint): Promise<void> {
+  async addNodeLabel(label: Label): Promise<void> {
     const { config, drivers, logger } = this.handlers;
-    const command = `kubectl taint nodes ${config.nodeName} ${taint.key}=${taint.value}:${taint.effect}`;
-    logger.debug(`addNodeTaint: exec '${command}'`);
+    const command = `kubectl label nodes ${config.nodeName} ${label.key}=${label.value}`;
+    logger.debug(`addNodeLabel: exec '${command}'`);
     const result = await drivers.exec(command);
-    logger.debug(`addNodeTaint: result '${result}'`);
+    logger.debug(`addNodeLabel: result '${result}'`);
   }
 
-  async removeNodeTaint(taint: Taint): Promise<void> {
+  async removeNodeLabel(label: Label): Promise<void> {
     const { config, drivers, logger } = this.handlers;
-    const command = `kubectl taint nodes ${config.nodeName} ${taint.key}=${taint.value}:${taint.effect}-`;
-    logger.debug(`removeNodeTaint: exec '${command}'`);
+    const command = `kubectl label nodes ${config.nodeName} ${label.key}=${label.value}-`;
+    logger.debug(`removeNodeLabel: exec '${command}'`);
     const result = await drivers.exec(command);
-    logger.debug(`removeNodeTaint: result '${result}'`);
+    logger.debug(`removeNodeLabel: result '${result}'`);
   }
 
   isNode(data: any): data is Node {
