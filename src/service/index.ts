@@ -62,13 +62,13 @@ export class Service implements Interface {
             value: eip.ip,
           };
           logger.info(`service/run: ${labelEip.key}=${labelEip.value}`);
-          k8s.addNodeLabel(labelEip);
+          await k8s.addNodeLabel(labelEip);
           const labelEipSet: K8S.Label = {
             key: this.labelEipSetKey,
             value: "true",
           };
           logger.info(`service/run: ${labelEipSet.key}=${labelEipSet.value}`);
-          k8s.addNodeLabel(labelEipSet);
+          await k8s.addNodeLabel(labelEipSet);
         }
       } catch (e) {
         logger.error(`service/run: ${e.toString()}`);

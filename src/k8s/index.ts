@@ -87,7 +87,7 @@ export class Client implements Interface {
 
   async addNodeLabel(label: Label): Promise<void> {
     const { config, drivers, logger } = this.handlers;
-    const command = `kubectl label nodes ${config.nodeName} ${label.key}=${label.value}`;
+    const command = `kubectl label nodes ${config.nodeName} ${label.key}=${label.value} --overwrite=true`;
     logger.debug(`addNodeLabel: exec '${command}'`);
     const result = await drivers.exec(command);
     logger.debug(`addNodeLabel: result '${result}'`);
