@@ -20,6 +20,7 @@ export class Service implements Interface {
   labelDomain = "aws.node.eip";
   labelEnabledKey = `${this.labelDomain}/enabled`;
   labelEipKey = `${this.labelDomain}/current-eip`;
+  labelEipSetKey = `${this.labelDomain}/current-eip-set`;
 
   constructor(protected handlers: Handlers) {}
 
@@ -43,7 +44,7 @@ export class Service implements Interface {
         const hasLabel = await this.hasLabel();
         if (!hasLabel) {
           logger.info(
-            `service/run: node does not have label '${this.labelEipKey}' set`
+            `service/run: node does not have label '${this.labelEipSetKey}' set`
           );
 
           logger.info(`service/run: checking if node has eip assigned`);
@@ -54,14 +55,20 @@ export class Service implements Interface {
             await this.assignEip();
           }
 
-          logger.info("service/run: assigning label to node");
+          logger.info("service/run: assigning labels to node");
           const eip = await aws.getInstanceEip();
-          const label: K8S.Label = {
+          const labelEip: K8S.Label = {
             key: this.labelEipKey,
             value: eip.ip,
           };
-          logger.info(`service/run: ${label.key}=${label.value}`);
-          k8s.addNodeLabel(label);
+          logger.info(`service/run: ${labelEip.key}=${labelEip.value}`);
+          k8s.addNodeLabel(labelEip);
+          const labelEipSet: K8S.Label = {
+            key: this.labelEipSetKey,
+            value: "true",
+          };
+          logger.info(`service/run: ${labelEipSet.key}=${labelEipSet.value}`);
+          k8s.addNodeLabel(labelEipSet);
         }
       } catch (e) {
         logger.error(`service/run: ${e.toString()}`);
@@ -130,6 +137,6 @@ export class Service implements Interface {
 
   async hasLabel(): Promise<boolean> {
     const { k8s } = this.handlers;
-    return await k8s.nodeHasLabelWithKey(this.labelEipKey);
+    return await k8s.nodeHasLabelWithKey(this.labelEipSetKey);
   }
 }
