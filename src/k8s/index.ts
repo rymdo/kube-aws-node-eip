@@ -70,7 +70,7 @@ export class Client implements Interface {
       logger.debug(`labels: "${JSON.stringify(metadata.labels)}"`);
       return metadata.labels;
     } catch (e) {
-      logger.error(`${e.toString()}`);
+      logger.error(`${(e as Error).toString()}`);
       throw new Error(`node "${config.nodeName}" not found`);
     }
   }

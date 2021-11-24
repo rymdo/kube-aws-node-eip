@@ -71,7 +71,7 @@ export class Service implements Interface {
           await k8s.addNodeLabel(labelEipSet);
         }
       } catch (e) {
-        logger.error(`service/run: ${e.toString()}`);
+        logger.error(`service/run: ${(e as Error).toString()}`);
       }
       await sleep(config.checkInterval * 1000);
     } while (run);

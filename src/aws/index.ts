@@ -87,7 +87,7 @@ export class Client implements Interface {
       logger.debug(`instance id: "${id}"`);
       return id;
     } catch (e) {
-      logger.error(`${e.toString()}`);
+      logger.error(`${(e as Error).toString()}`);
       throw new Error("failed to get instance id");
     }
   }
@@ -102,7 +102,7 @@ export class Client implements Interface {
       logger.debug(`instance public ip: "${ip}"`);
       return ip;
     } catch (e) {
-      logger.error(`${e.toString()}`);
+      logger.error(`${(e as Error).toString()}`);
       throw new Error("failed to get instance public ip");
     }
   }
@@ -220,7 +220,7 @@ export class Client implements Interface {
         })
       );
     } catch (e) {
-      logger.error(`${e.toString()}`);
+      logger.error(`${(e as Error).toString()}`);
       throw new Error("failed to assign eip");
     }
   }
