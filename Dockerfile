@@ -4,13 +4,13 @@ FROM ${BASE_IMAGE} as node-modules
 WORKDIR /build
 COPY package.json .
 COPY yarn.lock .
-RUN yarn --frozen-lockfile --production
+RUN yarn --frozen-lockfile --production --network-timeout 100000
 
 FROM ${BASE_IMAGE} as app
 WORKDIR /build
 COPY package.json .
 COPY yarn.lock .
-RUN yarn --frozen-lockfile
+RUN yarn --frozen-lockfile --network-timeout 100000
 COPY tsconfig.json .
 COPY src ./src
 RUN yarn build
